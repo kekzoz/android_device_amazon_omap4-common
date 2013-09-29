@@ -278,7 +278,7 @@ static int start_output_stream(struct stream_out *out)
     ALOGD("pcm_open(%d, %d, config=[rate=%u, channels=%u, period_size=%u, period_count=%u])\n", card, device,
           out->pcm_config->rate, out->pcm_config->channels, out->pcm_config->period_size, out->pcm_config->period_count);
 
-    out->pcm = pcm_open(card, device, PCM_OUT | PCM_NORESTART, out->pcm_config);
+    out->pcm = pcm_open(card, device, PCM_OUT | PCM_NORESTART | PCM_MONOTONIC, out->pcm_config);
 
     if (out->pcm && !pcm_is_ready(out->pcm)) {
         ALOGE("pcm_open(out) failed: %s", pcm_get_error(out->pcm));
@@ -792,10 +792,29 @@ static int out_get_next_write_timestamp(const struct audio_stream_out *stream __
     return -EINVAL;
 }
 
-static int out_get_presentation_position(const struct audio_stream_out *stream __unused,
-                        uint64_t *frames __unused, struct timespec *timestamp __unused)
+static int out_get_presentation_position(const struct audio_stream_out *stream,
+                                   uint64_t *frames, struct timespec *timestamp)
 {
-    return -1;
+    struct stream_out *out = (struct stream_out *)stream;
+    int ret = -1;
+
+    pthread_mutex_lock(&out->lock);
+
+    size_t avail;
+    if (pcm_get_htimestamp(out->pcm, &avail, timestamp) == 0) {
+        size_t kernel_buffer_size = out->pcm_config->period_size * out->pcm_config->period_count;
+        // FIXME This calculation is incorrect if there is buffering after app processor
+        int64_t signed_frames = out->written - kernel_buffer_size + avail;
+        // It would be unusual for this value to be negative, but check just in case ...
+        if (signed_frames >= 0) {
+            *frames = signed_frames;
+            ret = 0;
+        }
+    }
+
+    pthread_mutex_unlock(&out->lock);
+
+    return ret;
 }
 
 /** audio_stream_in implementation **/
@@ -1053,6 +1072,7 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     config->sample_rate = out_get_sample_rate(&out->stream.common);
 
     out->standby = true;
+    /* out->written = 0; by calloc() */
 
     *stream_out = &out->stream;
     return 0;
