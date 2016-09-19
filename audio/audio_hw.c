@@ -278,7 +278,7 @@ static int start_output_stream(struct stream_out *out)
     ALOGD("pcm_open(%d, %d, config=[rate=%u, channels=%u, period_size=%u, period_count=%u])\n", card, device,
           out->pcm_config->rate, out->pcm_config->channels, out->pcm_config->period_size, out->pcm_config->period_count);
 
-    out->pcm = pcm_open(card, device, PCM_OUT | PCM_NORESTART | PCM_MONOTONIC, out->pcm_config);
+    out->pcm = pcm_open(card, device, PCM_OUT | PCM_MMAP | PCM_NORESTART | PCM_MONOTONIC, out->pcm_config);
 
     if (out->pcm && !pcm_is_ready(out->pcm)) {
         ALOGE("pcm_open(out) failed: %s", pcm_get_error(out->pcm));
@@ -749,7 +749,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
         }
     }
 
-    ret = pcm_write(out->pcm, in_buffer, out_frames * frame_size);
+    ret = pcm_mmap_write(out->pcm, in_buffer, out_frames * frame_size);
     if (ret == -EPIPE) {
         /* In case of underrun, don't sleep since we want to catch up asap */
         pthread_mutex_unlock(&out->lock);
