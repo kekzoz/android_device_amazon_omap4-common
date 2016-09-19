@@ -1260,7 +1260,7 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
 
     in->requested_rate = config->sample_rate;
     /* default PCM config */
-    in->pcm_config = (config->sample_rate == 48000) && (flags & AUDIO_INPUT_FLAG_FAST) ?
+    in->pcm_config = (config->sample_rate == IN_SAMPLING_RATE) && (flags & AUDIO_INPUT_FLAG_FAST) ?
             &pcm_config_in_low_latency : &pcm_config_in;
     in->pcm_config_non_sco = in->pcm_config;
 
