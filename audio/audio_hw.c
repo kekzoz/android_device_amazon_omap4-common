@@ -800,15 +800,17 @@ static int out_get_presentation_position(const struct audio_stream_out *stream,
 
     pthread_mutex_lock(&out->lock);
 
-    size_t avail;
-    if (pcm_get_htimestamp(out->pcm, &avail, timestamp) == 0) {
-        size_t kernel_buffer_size = out->pcm_config->period_size * out->pcm_config->period_count;
-        // FIXME This calculation is incorrect if there is buffering after app processor
-        int64_t signed_frames = out->written - kernel_buffer_size + avail;
-        // It would be unusual for this value to be negative, but check just in case ...
-        if (signed_frames >= 0) {
-            *frames = signed_frames;
-            ret = 0;
+    if (out->pcm) {
+        size_t avail;
+        if (pcm_get_htimestamp(out->pcm, &avail, timestamp) == 0) {
+            size_t kernel_buffer_size = out->pcm_config->period_size * out->pcm_config->period_count;
+            // FIXME This calculation is incorrect if there is buffering after app processor
+            int64_t signed_frames = out->written - kernel_buffer_size + avail;
+            // It would be unusual for this value to be negative, but check just in case ...
+            if (signed_frames >= 0) {
+                *frames = signed_frames;
+                ret = 0;
+            }
         }
     }
 
