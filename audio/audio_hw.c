@@ -666,8 +666,8 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
     }
 
     /* Reduce number of channels, if necessary */
-    if (audio_channel_count_from_out_mask(out_get_channels(&stream->common)) >
-                 (int)out->pcm_config->channels) {
+    if ((int)audio_channel_count_from_out_mask(out_get_channels(&stream->common)) >
+                 out->pcm_config->channels) {
         unsigned int i;
 
         /* Discard right channel */
@@ -749,7 +749,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
         }
     }
 
-    ret = pcm_mmap_write(out->pcm, in_buffer, out_frames * frame_size);
+    ret = pcm_mmap_write(out->pcm, (void *)in_buffer, out_frames * frame_size);
     if (ret == -EPIPE) {
         /* In case of underrun, don't sleep since we want to catch up asap */
         pthread_mutex_unlock(&out->lock);
@@ -763,8 +763,7 @@ exit:
     pthread_mutex_unlock(&out->lock);
 
     if (ret != 0) {
-        usleep(bytes * 1000000 / audio_stream_out_frame_size(&stream->common) /
-               out_get_sample_rate(&stream->common));
+        usleep(bytes * 1000000 / frame_size / out_get_sample_rate(&stream->common));
     }
 
     return bytes;
