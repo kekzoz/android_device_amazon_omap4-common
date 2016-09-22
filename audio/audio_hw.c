@@ -44,15 +44,6 @@
 
 #include <audio_hw_config.h>
 
-/* minimum sleep time in out_write() when write threshold is not reached */
-#define MIN_WRITE_SLEEP_US 2000
-
-enum {
-    OUT_BUFFER_TYPE_UNKNOWN,
-    OUT_BUFFER_TYPE_SHORT,
-    OUT_BUFFER_TYPE_LONG,
-};
-
 struct audio_device {
     struct audio_hw_device hw_device;
 
@@ -81,10 +72,6 @@ struct stream_out {
     struct resampler_itfe *resampler;
     int16_t *buffer;
     size_t buffer_frames;
-
-    int write_threshold;
-    int cur_write_threshold;
-    int buffer_type;
 
     struct audio_device *dev;
 };
@@ -252,7 +239,6 @@ static int start_output_stream(struct stream_out *out)
         out->pcm_config = &pcm_config_hdmi;
     } else {
         out->pcm_config = &pcm_config_out;
-        out->buffer_type = OUT_BUFFER_TYPE_UNKNOWN;
         if (adev->screen_off)
             device = PCM_DEVICE_MM_LP;
     }
@@ -623,9 +609,6 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
     int16_t *in_buffer = (int16_t *)buffer;
     size_t in_frames = bytes / frame_size;
     size_t out_frames;
-    int buffer_type;
-    int kernel_frames;
-    bool sco_on;
 
     /*
      * acquiring hw device mutex systematically is useful if a low
@@ -643,27 +626,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
         }
         out->standby = false;
     }
-    buffer_type = (adev->screen_off && !adev->active_in) ?
-            OUT_BUFFER_TYPE_LONG : OUT_BUFFER_TYPE_SHORT;
-    sco_on = (adev->out_device & AUDIO_DEVICE_OUT_ALL_SCO);
     pthread_mutex_unlock(&adev->lock);
-
-    /* detect changes in screen ON/OFF state and adapt buffer size
-     * if needed. Do not change buffer size when routed to SCO device. */
-    if (!sco_on && (buffer_type != out->buffer_type)) {
-        size_t period_count;
-
-        if (buffer_type == OUT_BUFFER_TYPE_LONG)
-            period_count = pcm_config_out_lp.period_count;
-        else
-            period_count = pcm_config_out.period_count;
-
-        out->write_threshold = out->pcm_config->period_size * period_count;
-        /* reset current threshold if exiting standby */
-        if (out->buffer_type == OUT_BUFFER_TYPE_UNKNOWN)
-            out->cur_write_threshold = out->write_threshold;
-        out->buffer_type = buffer_type;
-    }
 
     /* Reduce number of channels, if necessary */
     if ((int)audio_channel_count_from_out_mask(out_get_channels(&stream->common)) >
@@ -689,72 +652,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
         out_frames = in_frames;
     }
 
-    if (!sco_on) {
-        int total_sleep_time_us = 0;
-        size_t period_size = out->pcm_config->period_size;
-        int max_write_sleep_us = ((period_size * pcm_config_out.period_count * 1000000) \
-                                               / out->pcm_config->rate);
-
-        /* do not allow more than out->cur_write_threshold frames in kernel
-         * pcm driver buffer */
-        do {
-            struct timespec time_stamp;
-            if (pcm_get_htimestamp(out->pcm,
-                                   (unsigned int *)&kernel_frames,
-                                   &time_stamp) < 0)
-                break;
-            kernel_frames = pcm_get_buffer_size(out->pcm) - kernel_frames;
-
-            if (kernel_frames > out->cur_write_threshold) {
-                int sleep_time_us =
-                    (int)(((int64_t)(kernel_frames - out->cur_write_threshold)
-                                    * 1000000) / out->pcm_config->rate);
-                if (sleep_time_us < MIN_WRITE_SLEEP_US)
-                    break;
-                total_sleep_time_us += sleep_time_us;
-                if (total_sleep_time_us > max_write_sleep_us) {
-                    ALOGW("out_write() limiting sleep time %d to %d",
-                          total_sleep_time_us, max_write_sleep_us);
-                    sleep_time_us = max_write_sleep_us -
-                                        (total_sleep_time_us - sleep_time_us);
-                }
-                usleep(sleep_time_us);
-            }
-
-        } while ((kernel_frames > out->cur_write_threshold) &&
-                (total_sleep_time_us <= max_write_sleep_us));
-
-        /* do not allow abrupt changes on buffer size. Increasing/decreasing
-         * the threshold by steps of 1/4th of the buffer size keeps the write
-         * time within a reasonable range during transitions.
-         * Also reset current threshold just above current filling status when
-         * kernel buffer is really depleted to allow for smooth catching up with
-         * target threshold.
-         */
-        if (out->cur_write_threshold > out->write_threshold) {
-            out->cur_write_threshold -= period_size / 4;
-            if (out->cur_write_threshold < out->write_threshold) {
-                out->cur_write_threshold = out->write_threshold;
-            }
-        } else if (out->cur_write_threshold < out->write_threshold) {
-            out->cur_write_threshold += period_size / 4;
-            if (out->cur_write_threshold > out->write_threshold) {
-                out->cur_write_threshold = out->write_threshold;
-            }
-        } else if ((kernel_frames < out->write_threshold) &&
-            ((out->write_threshold - kernel_frames) >
-                (int)(period_size * pcm_config_out.period_count))) {
-            out->cur_write_threshold = (kernel_frames / period_size + 1) * period_size;
-            out->cur_write_threshold += period_size / 4;
-        }
-    }
-
     ret = pcm_mmap_write(out->pcm, (void *)in_buffer, out_frames * frame_size);
-    if (ret == -EPIPE) {
-        /* In case of underrun, don't sleep since we want to catch up asap */
-        pthread_mutex_unlock(&out->lock);
-        return ret;
-    }
     if (ret == 0) {
         out->written += out_frames;
     }
