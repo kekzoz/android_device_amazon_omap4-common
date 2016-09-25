@@ -602,7 +602,7 @@ static int out_set_volume(struct audio_stream_out *stream __unused, float left _
 static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
                          size_t bytes)
 {
-    int ret = 0;
+    ssize_t ret = 0;
     struct stream_out *out = (struct stream_out *)stream;
     struct audio_device *adev = out->dev;
     size_t frame_size = audio_stream_out_frame_size(stream);
@@ -652,15 +652,23 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
         out_frames = in_frames;
     }
 
-    ret = pcm_mmap_write(out->pcm, (void *)in_buffer, out_frames * frame_size);
-    if (ret == 0) {
-        out->written += out_frames;
+    if (out->pcm) {
+        ALOGV("%s: writing buffer (%d bytes) to pcm device", __func__, bytes);
+
+        ret = pcm_mmap_write(out->pcm, (void *)in_buffer, out_frames * frame_size);
+
+        if (ret == 0) {
+            out->written += out_frames;
+        }
     }
 
 exit:
     pthread_mutex_unlock(&out->lock);
 
     if (ret != 0) {
+        if (out->pcm)
+            ALOGE("%s: error %zu - %s", __func__, ret, pcm_get_error(out->pcm));
+        out_standby(&stream->common);
         usleep(bytes * 1000000 / frame_size / out_get_sample_rate(&stream->common));
     }
 
