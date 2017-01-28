@@ -66,6 +66,8 @@ endif
 # Misc.
 BOARD_NEEDS_CUTILS_LOG := true
 
+BOARD_HARDWARE_CLASS += $(OMAP4_NEXT_FOLDER)/cmhw
+
 BOARD_SEPOLICY_DIRS += \
     $(COMMON_FOLDER)/sepolicy
 
