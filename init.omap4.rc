@@ -8,14 +8,16 @@ on init
 on fs
     # zRAM read only 1 page at a time
     write /proc/sys/vm/page-cluster 0
-    # lower swappiness when using swap
-    write /proc/sys/vm/swappiness 10
+    # Aggressive swap for dirty pages
+    # still, it can be higher with the
+    # LZ4 & 2 compression streams now
+    write /proc/sys/vm/swappiness 100
 
     # pvr module
     insmod /system/lib/modules/pvrsrvkm_sgx540_120.ko
     insmod /system/lib/modules/pvrsrvkm_sgx544_112.ko
-    insmod /system/lib/modules/omaplfb_sgx540_120.ko
-    insmod /system/lib/modules/omaplfb_sgx544_112.ko
+    insmod /system/lib/modules/omaplfb_sgx540_120.ko		
+    insmod /system/lib/modules/omaplfb_sgx544_112.ko    
     start pvrsrvinit
 
     # change permissions for ION driver
@@ -50,23 +52,23 @@ on boot
     mkdir /data/misc/wifi/sockets 0770 wifi wifi
     mkdir /data/misc/dhcp 0770 dhcp dhcp
     chown dhcp dhcp /data/misc/dhcp
+    
+    #Hardware tunables
+    chown root system /sys/devices/platform/omapdss/manager0/cpr_coef
+    chown root system /sys/devices/platform/omapdss/manager0/cpr_enable
+    chmod 0664 /sys/devices/platform/omapdss/manager0/cpr_coef
+    chmod 0664 /sys/devices/platform/omapdss/manager0/cpr_enable
+    restorecon /sys/devices/platform/omapdss/manager0/cpr_coef
+    restorecon /sys/devices/platform/omapdss/manager0/cpr_enable
 
-service pvrsrvinit /system/bin/pvrsrvinit
-    class core
-    user root
+service pvrsrvinit /system/bin/pvrsrvinit		
+    class core		
+    user root		
     group root
-    oneshot
+    seclabel u:r:pvrsrvinit:s0
+    oneshot		
     disabled
-
-# create filesystems if necessary
-service setup_fs /system/bin/setup_fs \
-    /dev/block/platform/omap/omap_hsmmc.1/by-name/cache \
-    /dev/block/platform/omap/omap_hsmmc.1/by-name/userdata
-    class core
-    user root
-    group root
-    oneshot
-
+ 
 ###################################################
 # MSHIELD SMC Daemon - component required to store persistent data coming
 #   from the SMC PA to the device persistent storage
@@ -92,4 +94,3 @@ service smc_pa /system/bin/smc_pa_ctrl \
 
 on property:init.svc.smc_pa=stopped
 	start tf_daemon
-
