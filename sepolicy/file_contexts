@@ -13,8 +13,8 @@
 /dev/isl29030                            u:object_r:sensors_device:s0
 
 #video
-/dev/dsscomp                             u:object_r:video_device:s0
-/dev/tiler                               u:object_r:video_device:s0
+#/dev/dsscomp                             u:object_r:video_device:s0
+# /dev/tiler                               u:object_r:video_device:s0
 /dev/gcioctl                             u:object_r:video_device:s0
 
 #The devices and files used by the hciattach service are device specific
@@ -42,8 +42,7 @@
 # System binaries
 /system/bin/fix-mac.sh                   u:object_r:fixmac_exec:s0
 /system/bin/smc_pa_ctrl                  u:object_r:smc_pa_exec:s0
-/system/bin/setup_fs                     u:object_r:setup_fs_exec:s0
-/system/bin/pvrsrvinit                   u:object_r:pvrsrvinit_exec:s0
+#/system/bin/pvrsrvinit                   u:object_r:pvrsrvinit_exec:s0
 /system/vendor/bin/pvrsrvinit            u:object_r:pvrsrvinit_exec:s0
 /system/vendor/bin/pvrsrvinit_SGX540_120 u:object_r:pvrsrvinit_exec:s0
 
@@ -54,3 +53,9 @@
 
 # bcm2076 rfkill sysfs
 /sys/devices/platform/bcm2076_bluetooth/rfkill(/.*)?  u:object_r:sysfs_bluetooth_writable:s0
+
+# atmel_touch.sh
+/system/bin/atmel_touch\.sh              u:object_r:atmeltouch_exec:s0
+
+# camera
+/system/vendor/bin/camera_dcc(/.*)? u:object_r:cameradcc_exec:s0

@@ -13,3 +13,4 @@ allow fixmac shell_exec:file read;
 allow fixmac system_file:file execute_no_trans;
 allow fixmac kernel:process setsched;
 allow fixmac self:netlink_socket create;
+allow fixmac wifi_data_file:file append;

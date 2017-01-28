@@ -3,3 +3,7 @@ type pds_file, file_type;
 
 # ducati
 type firmware_ducati, file_type;
+
+# Default type for anything under /firmware
+type firmware_file, fs_type, contextmount_type;
+
