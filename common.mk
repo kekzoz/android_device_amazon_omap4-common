@@ -69,7 +69,7 @@ ADDITIONAL_BUILD_PROPERTIES += \
 # Device settings
 ADDITIONAL_BUILD_PROPERTIES += \
     wifi.interface=wlan0 \
-    wifi.supplicant_scan_interval=120 \
+    wifi.supplicant_scan_interval=15 \
     ro.opengles.version=131072 \
     com.ti.omap_enhancement=true \
     omap.enhancement=true \
