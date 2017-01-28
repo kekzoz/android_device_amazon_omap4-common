@@ -47,6 +47,9 @@ ADDITIONAL_DEFAULT_PROPERTIES += \
     ro.secure=0 \
     ro.allow.mock.location=1 \
     ro.debuggable=1
+    
+# Not quite ready for Toybox
+WITH_BUSYBOX_LINKS := true
 
 # Recovery
 BOARD_HAS_NO_SELECT_BUTTON := true
