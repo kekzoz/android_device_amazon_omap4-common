@@ -106,7 +106,6 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     make_ext4fs \
     sdcard \
-    setup_fs \
     e2fsck \
     mkfs.f2fs \
     fsck.f2fs \
