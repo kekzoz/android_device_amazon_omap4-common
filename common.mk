@@ -82,6 +82,11 @@ ADDITIONAL_BUILD_PROPERTIES += \
     ro.ksm.default=1 \
     camera2.portability.force_api=1
 
+# Deeper Sleep / Better Battery Life
+ADDITIONAL_BUILD_PROPERTIES += \
+    ro.ril.disable.power.collapse=1 \
+    pm.sleep_mode=1
+
 PRODUCT_CHARACTERISTICS := tablet,nosdcard
 
 DEVICE_PACKAGE_OVERLAYS := $(DEVICE_FOLDER)/overlay/aosp
