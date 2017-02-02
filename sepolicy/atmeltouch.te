@@ -12,7 +12,7 @@ allow atmeltouch firmware_file:dir r_dir_perms;
 allow atmeltouch firmware_file:file r_file_perms;
 
 allow atmeltouch shell_exec:file rx_file_perms;
-allow atmeltouch system_file:file {rx_file_perms execmod};
+allow atmeltouch system_file:file rx_file_perms;
 allow atmeltouch sysfs_devices_system_cpu:file rw_file_perms;
 allow atmeltouch sysfs:file rw_file_perms;
 

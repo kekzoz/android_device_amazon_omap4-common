@@ -17,10 +17,9 @@ allow cameradcc firmware_file:dir r_dir_perms;
 allow cameradcc firmware_file:file r_file_perms;
 
 allow cameradcc shell_exec:file rx_file_perms;
-allow cameradcc system_file:file {rx_file_perms execmod};
+allow cameradcc system_file:file rx_file_perms;
 allow cameradcc sysfs_devices_system_cpu:file rw_file_perms;
 allow cameradcc sysfs:file rw_file_perms;
-allow cameradcc system_file:file execmod;
 
 allow cameradcc self:capability sys_module;
 allow cameradcc self:capability { setuid setgid };
