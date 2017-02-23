@@ -24,10 +24,12 @@ $(call inherit-product-if-exists, hardware/ti/omap4/omap4.mk)
 # set to allow building from omap4-common
 BOARD_VENDOR := amazon
 
+ifneq (ev_soho, $(TARGET_PRODUCT))
 ifeq ($(TARGET_PREBUILT_KERNEL),)
 LOCAL_KERNEL := $(DEVICE_FOLDER)/kernel
 else
 LOCAL_KERNEL := $(TARGET_PREBUILT_KERNEL)
+endif
 endif
 
 # Rootfs
@@ -95,9 +97,11 @@ DEVICE_PACKAGE_OVERLAYS := $(DEVICE_FOLDER)/overlay/aosp
 PRODUCT_TAGS += dalvik.gc.type-precise
 
 # Rootfs
+ifneq (ev_soho, $(TARGET_PRODUCT))
 PRODUCT_COPY_FILES += \
     $(LOCAL_KERNEL):kernel \
-    $(COMMON_FOLDER)/default.prop:/root/default.prop \
+    $(COMMON_FOLDER)/default.prop:/root/default.prop
+endif
 
 # Wifi
 PRODUCT_PACKAGES += \
