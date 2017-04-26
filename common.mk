@@ -19,7 +19,8 @@
 
 COMMON_FOLDER := device/amazon/omap4-common
 
-$(call inherit-product-if-exists, hardware/ti/omap4/omap4.mk)
+$(call inherit-product, hardware/ti/omap4/omap4.mk)
+$(call inherit-product, hardware/ti/omap4/pvr-km.mk)
 
 # set to allow building from omap4-common
 BOARD_VENDOR := amazon
@@ -30,43 +31,37 @@ LOCAL_KERNEL := $(DEVICE_FOLDER)/kernel
 else
 LOCAL_KERNEL := $(TARGET_PREBUILT_KERNEL)
 endif
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_KERNEL):kernel \
+    $(COMMON_FOLDER)/default.prop:/root/default.prop
 endif
 
-# Rootfs
-PRODUCT_COPY_FILES += \
-    $(COMMON_FOLDER)/init.omap4.rc:/root/init.omap4.rc
+DEVICE_PACKAGE_OVERLAYS := $(DEVICE_FOLDER)/overlay/aosp
 
-# Permissions
-PRODUCT_COPY_FILES += \
-    frameworks/native/data/etc/tablet_core_hardware.xml:system/etc/permissions/tablet_core_hardware.xml \
-    frameworks/native/data/etc/android.hardware.wifi.xml:system/etc/permissions/android.hardware.wifi.xml \
-    frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:system/etc/permissions/android.hardware.sensor.accelerometer.xml \
-    frameworks/native/data/etc/android.hardware.sensor.light.xml:system/etc/permissions/android.hardware.sensor.light.xml \
-    frameworks/native/data/etc/android.hardware.sensor.barometer.xml:system/etc/permissions/android.hardware.sensor.barometer.xml \
-    frameworks/native/data/etc/android.hardware.sensor.gyroscope.xml:system/etc/permissions/android.hardware.sensor.gyroscope.xml \
-    frameworks/native/data/etc/android.hardware.sensor.proximity.xml:system/etc/permissions/android.hardware.sensor.proximity.xml \
-    frameworks/native/data/etc/android.hardware.touchscreen.multitouch.distinct.xml:system/etc/permissions/android.hardware.touchscreen.multitouch.distinct.xml \
-    frameworks/native/data/etc/android.hardware.usb.accessory.xml:system/etc/permissions/android.hardware.usb.accessory.xml \
-    frameworks/native/data/etc/android.software.sip.voip.xml:system/etc/permissions/android.software.sip.voip.xml \
-    frameworks/native/data/etc/android.hardware.usb.host.xml:system/etc/permissions/android.hardware.usb.host.xml \
-    frameworks/native/data/etc/android.hardware.usb.accessory.xml:system/etc/permissions/android.hardware.usb.accessory.xml \
-    $(call add-to-product-copy-files-if-exists,packages/wallpapers/LivePicker/android.software.live_wallpaper.xml:system/etc/permissions/android.software.live_wallpaper.xml)
+# Audio Support
+PRODUCT_PACKAGES += \
+    libaudioutils \
+    Music \
+    tinyplay \
+    tinymix \
+    tinycap \
+    audio_policy.default \
+    audio.a2dp.default \
+    audio.usb.default \
+    audio.r_submix.default \
+    audio.primary.$(TARGET_BOOTLOADER_BOARD_NAME) \
+    audio.hdmi.$(TARGET_BOOTLOADER_BOARD_NAME)
 
 # Codecs
 PRODUCT_COPY_FILES += \
     $(COMMON_FOLDER)/prebuilt/etc/media_codecs.xml:/system/etc/media_codecs.xml \
     $(COMMON_FOLDER)/prebuilt/etc/media_profiles.xml:/system/etc/media_profiles.xml \
     frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml:system/etc/media_codecs_google_audio.xml \
-    frameworks/av/media/libstagefright/data/media_codecs_google_video.xml:system/etc/media_codecs_google_video.xml \
+    frameworks/av/media/libstagefright/data/media_codecs_google_video.xml:system/etc/media_codecs_google_video.xml
 
-# Low-RAM optimizations
-ADDITIONAL_BUILD_PROPERTIES += \
-    ro.config.low_ram=true \
-    persist.sys.force_highendgfx=true \
-    dalvik.vm.jit.codecachesize=0 \
-    config.disable_atlas=true \
-    ro.config.max_starting_bg=8 \
-    ro.sys.fw.bg_apps_limit=16
+# Dalvik
+PRODUCT_TAGS += dalvik.gc.type-precise
 
 # Device settings
 ADDITIONAL_BUILD_PROPERTIES += \
@@ -89,27 +84,9 @@ ADDITIONAL_BUILD_PROPERTIES += \
     ro.ril.disable.power.collapse=1 \
     pm.sleep_mode=1
 
-PRODUCT_CHARACTERISTICS := tablet,nosdcard
-
-DEVICE_PACKAGE_OVERLAYS := $(DEVICE_FOLDER)/overlay/aosp
-
-# we have enough storage space to hold precise GC data
-PRODUCT_TAGS += dalvik.gc.type-precise
-
-# Rootfs
-ifneq (ev_soho, $(TARGET_PRODUCT))
-PRODUCT_COPY_FILES += \
-    $(LOCAL_KERNEL):kernel \
-    $(COMMON_FOLDER)/default.prop:/root/default.prop
-endif
-
-# Wifi
+# DRM
 PRODUCT_PACKAGES += \
-    dhcpcd.conf \
-    libwpa_client \
-    hostapd \
-    wpa_supplicant \
-    wpa_supplicant.conf
+    libwvm
 
 # Filesystem management tools
 PRODUCT_PACKAGES += \
@@ -120,20 +97,33 @@ PRODUCT_PACKAGES += \
     fsck.f2fs \
     fibmap.f2fs
 
-# Audio Support
+# Graphics
 PRODUCT_PACKAGES += \
-    libaudioutils \
-    Music \
-    tinyplay \
-    tinymix \
-    tinycap \
-    audio_policy.default \
-    audio.usb.default \
-    audio.r_submix.default
+    hwcomposer.$(TARGET_BOOTLOADER_BOARD_NAME)
 
-# DRM
+# GPS
+PRODUCT_COPY_FILES += \
+    $(COMMON_FOLDER)/prebuilt/etc/gps.conf:/system/etc/gps.conf
+
+# Lights
 PRODUCT_PACKAGES += \
-    libwvm \
+    lights.$(TARGET_BOOTLOADER_BOARD_NAME)
+
+# Power
+PRODUCT_PACKAGES += \
+    power.$(TARGET_BOOTLOADER_BOARD_NAME)
+
+# Low-RAM optimizations
+ADDITIONAL_BUILD_PROPERTIES += \
+    ro.config.low_ram=true \
+    persist.sys.force_highendgfx=true \
+    dalvik.vm.jit.codecachesize=0 \
+    config.disable_atlas=true \
+    ro.config.max_starting_bg=8 \
+    ro.sys.fw.bg_apps_limit=16 \
+    ro.hwui.disable_scissor_opt=false \
+    config.disable_atlas=true \
+    debug.hwui.render_dirty_regions=false
 
 # Misc / Testing
 PRODUCT_PACKAGES += \
@@ -142,9 +132,34 @@ PRODUCT_PACKAGES += \
     libjni_pinyinime \
     sh
 
-# Prebuilts
+# Permissions
 PRODUCT_COPY_FILES += \
-    $(COMMON_FOLDER)/prebuilt/etc/gps.conf:/system/etc/gps.conf
+    frameworks/native/data/etc/tablet_core_hardware.xml:system/etc/permissions/tablet_core_hardware.xml \
+    frameworks/native/data/etc/android.hardware.wifi.xml:system/etc/permissions/android.hardware.wifi.xml \
+    frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:system/etc/permissions/android.hardware.sensor.accelerometer.xml \
+    frameworks/native/data/etc/android.hardware.sensor.light.xml:system/etc/permissions/android.hardware.sensor.light.xml \
+    frameworks/native/data/etc/android.hardware.sensor.barometer.xml:system/etc/permissions/android.hardware.sensor.barometer.xml \
+    frameworks/native/data/etc/android.hardware.sensor.gyroscope.xml:system/etc/permissions/android.hardware.sensor.gyroscope.xml \
+    frameworks/native/data/etc/android.hardware.sensor.proximity.xml:system/etc/permissions/android.hardware.sensor.proximity.xml \
+    frameworks/native/data/etc/android.hardware.touchscreen.multitouch.distinct.xml:system/etc/permissions/android.hardware.touchscreen.multitouch.distinct.xml \
+    frameworks/native/data/etc/android.hardware.usb.accessory.xml:system/etc/permissions/android.hardware.usb.accessory.xml \
+    frameworks/native/data/etc/android.software.sip.voip.xml:system/etc/permissions/android.software.sip.voip.xml \
+    frameworks/native/data/etc/android.hardware.usb.host.xml:system/etc/permissions/android.hardware.usb.host.xml \
+    frameworks/native/data/etc/android.hardware.usb.accessory.xml:system/etc/permissions/android.hardware.usb.accessory.xml \
+    $(call add-to-product-copy-files-if-exists,packages/wallpapers/LivePicker/android.software.live_wallpaper.xml:system/etc/permissions/android.software.live_wallpaper.xml)
 
-$(call inherit-product-if-exists, vendor/amazon/omap4-common/omap4-common-vendor.mk)
+# Ramdisk
+PRODUCT_PACKAGES += \
+    init.amazon.omap4.rc
+
+# Wifi
+PRODUCT_PACKAGES += \
+    dhcpcd.conf \
+    libwpa_client \
+    hostapd \
+    wpa_supplicant \
+    wpa_supplicant.conf
+
+$(call inherit-product-if-exists, vendor/ti/omap4/omap4-vendor.mk)
+$(call inherit-product-if-exists, vendor/widevine/arm-generic/widevine-vendor.mk)
 

@@ -1,3 +1,5 @@
+import init.omap4.rc
+
 on early-init
     mount debugfs debugfs /sys/kernel/debug
     symlink /data/tombstones /tombstones
@@ -9,13 +11,6 @@ on fs
     # still, it can be higher with the
     # LZ4 & 2 compression streams now
     write /proc/sys/vm/swappiness 100
-
-    # pvr module
-    insmod /system/lib/modules/pvrsrvkm_sgx540_120.ko
-    insmod /system/lib/modules/pvrsrvkm_sgx544_112.ko
-    insmod /system/lib/modules/omaplfb_sgx540_120.ko
-    insmod /system/lib/modules/omaplfb_sgx544_112.ko
-    start pvrsrvinit
 
     # change permissions for ION driver
     chmod 0777 /dev/ion
@@ -43,28 +38,13 @@ on early-boot
 
 on boot
     mount debugfs /sys/kernel/debug /sys/kernel/debug
+    chmod 0666 /dev/pvrsrvkm
 
     # wifi
     mkdir /data/misc/wifi 0770 wifi wifi
     mkdir /data/misc/wifi/sockets 0770 wifi wifi
     mkdir /data/misc/dhcp 0770 dhcp dhcp
     chown dhcp dhcp /data/misc/dhcp
-    
-    #Hardware tunables
-    chown root system /sys/devices/platform/omapdss/manager0/cpr_coef
-    chown root system /sys/devices/platform/omapdss/manager0/cpr_enable
-    chmod 0664 /sys/devices/platform/omapdss/manager0/cpr_coef
-    chmod 0664 /sys/devices/platform/omapdss/manager0/cpr_enable
-    restorecon /sys/devices/platform/omapdss/manager0/cpr_coef
-    restorecon /sys/devices/platform/omapdss/manager0/cpr_enable
-
-service pvrsrvinit /system/bin/pvrsrvinit
-    class core
-    user root
-    group root
-    seclabel u:r:pvrsrvinit:s0
-    oneshot
-    disabled
 
 ###################################################
 # MSHIELD SMC Daemon - component required to store persistent data coming
