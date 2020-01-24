@@ -25,7 +25,7 @@ $(call inherit-product, hardware/ti/omap4/pvr-km.mk)
 # set to allow building from omap4-common
 BOARD_VENDOR := amazon
 
-ifneq (ev_soho, $(TARGET_PRODUCT))
+ifneq (lineage_soho, $(TARGET_PRODUCT))
 ifeq ($(TARGET_PREBUILT_KERNEL),)
 LOCAL_KERNEL := $(DEVICE_FOLDER)/kernel
 else
