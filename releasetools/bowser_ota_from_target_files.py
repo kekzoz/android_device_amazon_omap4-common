@@ -766,7 +766,7 @@ else if get_stage("%(bcb_dev)s") == "3/3" then
   script.ShowProgress(system_progress, 0)
 
   if block_based:
-    script.Print("Installing Evervolv")
+    script.Print("Installing LineageOS")
     # Full OTA is done as an "incremental" against an empty source
     # image.  This has the effect of writing new data from the package
     # to the entire partition, but lets us reuse the updater code that
@@ -781,7 +781,7 @@ else if get_stage("%(bcb_dev)s") == "3/3" then
     script.Mount("/system", recovery_mount_options)
     # if not has_recovery_patch:
     #   script.UnpackPackageDir("recovery", "/system")
-    script.Print("Installing Evervolv")
+    script.Print("Installing LineageOS")
     script.UnpackPackageDir("system", "/system")
 
     symlinks = CopyPartitionFiles(system_items, input_zip, output_zip)
